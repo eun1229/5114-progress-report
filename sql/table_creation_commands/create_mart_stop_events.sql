@@ -7,6 +7,7 @@
 
 CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_MART.STOP_EVENTS (
     service_date                DATE          NOT NULL,
+    trip_start_date             DATE,
 
     -- Trip / route identifiers
     trip_id                     VARCHAR       NOT NULL,
@@ -37,8 +38,8 @@ CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_MART.STOP_EVENTS (
     arrival_delay_seconds       INTEGER,
 
     -- On-time flag:
-    --   on time = arrived no earlier than 2 min before scheduled AND no later than 4 min after scheduled
-    --   (-120 <= arrival_delay_seconds <= 240)
+    --   on time = arrived no earlier than 2 min before scheduled AND no later than 5 min after scheduled
+    --   (-120 <= arrival_delay_seconds <= 300)
     -- The reasoning for this flag's boundaries was inspired by WMATA (Washington DC) performance measure definitions
     is_on_time                  BOOLEAN,
 

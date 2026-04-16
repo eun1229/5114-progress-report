@@ -5,11 +5,12 @@
 
 -- Idempotency guard
 DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.STOP_EVENTS
-WHERE service_date = '2026-03-10';
+WHERE trip_start_date = '2026-03-10' or trip_start_date is null;
 
 
 INSERT INTO LEMMING_DB.FINAL_PROJECT_MART.STOP_EVENTS (
     service_date,
+    trip_start_date,
     trip_id,
     route_id,
     route_type,
@@ -31,6 +32,7 @@ INSERT INTO LEMMING_DB.FINAL_PROJECT_MART.STOP_EVENTS (
 WITH stopped_at AS (
     SELECT
         f.service_date,
+        f.trip_start_date,
         f.trip_id,
         f.route_id,
         f.direction_id,
@@ -43,23 +45,23 @@ WITH stopped_at AS (
         f.occupancy_percentage,
         f.static_version_date,
 
-        -- Actual seconds since service-day midnight
+        -- Actual seconds since trip-day midnight
         -- Comparable to dim_stop_times.arrival_seconds
         DATEDIFF(
             'second',
-            f.service_date::TIMESTAMP_NTZ,
+            f.trip_start_date::TIMESTAMP_NTZ,
             f.position_timestamp
         )                               AS actual_arrival_seconds
 
     FROM LEMMING_DB.FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS f
 
-    WHERE f.service_date   = '2026-03-10'
+    WHERE f.trip_start_date   = '2026-03-10'
       AND f.current_status = 'STOPPED_AT'
 
     -- QUALIFY reduces to the earliest snapshot per (trip_id, stop_sequence)
     -- i.e. the actual arrival moment at each stop.
     QUALIFY ROW_NUMBER() OVER (
-        PARTITION BY f.service_date, f.trip_id, f.current_stop_sequence
+        PARTITION BY f.trip_start_date, f.trip_id, f.current_stop_sequence
         ORDER BY f.position_timestamp ASC
     ) = 1
 ),
@@ -68,6 +70,7 @@ WITH stopped_at AS (
 enriched AS (
     SELECT
         s.service_date,
+        s.trip_start_date,
         s.trip_id,
         s.route_id,
         r.route_type,
@@ -85,9 +88,9 @@ enriched AS (
         (s.actual_arrival_seconds - st.arrival_seconds)
                                         AS arrival_delay_seconds,
 
-        -- On-time: within [-120, +240] seconds of scheduled arrival, as described in table creation command
+        -- On-time: within [-120, +300] seconds of scheduled arrival, as described in table creation command
         IFF(
-            (s.actual_arrival_seconds - st.arrival_seconds) BETWEEN -120 AND 240,
+            (s.actual_arrival_seconds - st.arrival_seconds) BETWEEN -120 AND 300,
             TRUE, FALSE
         )                               AS is_on_time,
 
@@ -122,6 +125,7 @@ enriched AS (
 
 SELECT
     service_date,
+    trip_start_date,
     trip_id,
     route_id,
     route_type,
@@ -140,4 +144,3 @@ SELECT
     occupancy_percentage,
     static_version_date
 FROM enriched;
-

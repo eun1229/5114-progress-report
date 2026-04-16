@@ -105,10 +105,12 @@ def _time_to_seconds(col_name: str) -> F.Column:
     Returns NULL when the source column is null or empty.
     """
     parts = F.split(F.col(col_name), ":")
+    hour = parts.getItem(0).cast(IntegerType())
+    hour = F.when(hour >= 24, hour - 24).otherwise(hour)
     return (
         F.when(F.col(col_name).isNull() | (F.col(col_name) == ""), None)
          .otherwise(
-             parts.getItem(0).cast(IntegerType()) * 3600
+             hour * 3600
              + parts.getItem(1).cast(IntegerType()) * 60
              + parts.getItem(2).cast(IntegerType())
          )
