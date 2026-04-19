@@ -3,9 +3,14 @@
 -- We keep the most recent alert snapshot even when doing backfills of earlier dates with the condition WHEN MATCHED AND source.snapshot_timestamp > target.snapshot_timestamp
 -- Used Claude Sonnet 4.6 for help with merging logic
 
--- replace '2026-03-11' with :service_date!!!!!!
+-- Getting the correct static version to add to the static_version_date column
+SET static_version_date = (
+    SELECT MAX(feed_start_date)
+    FROM LEMMING_DB.FINAL_PROJECT_STATIC.DIM_STATIC_VERSIONS
+    WHERE feed_start_date <= '2026-03-11'
+);
 
-MERGE INTO LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERT AS target
+MERGE INTO LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS AS target
 USING (
     SELECT
         entity_id,
@@ -35,14 +40,15 @@ WHEN MATCHED AND source.snapshot_timestamp > target.snapshot_timestamp THEN UPDA
     header_text           = source.header_text,
     description_text      = source.description_text,
     url                   = source.url,
-    ingested_at           = source.ingested_at
+    ingested_at           = source.ingested_at,
+    static_version_date   = $static_version_date
 WHEN NOT MATCHED THEN INSERT (
     entity_id, snapshot_timestamp, cause, effect, severity_level,
     effect_detail, cause_detail, header_text, description_text,
-    url, gtfs_realtime_version, ingested_at
+    url, gtfs_realtime_version, ingested_at, static_version_date
 ) VALUES (
     source.entity_id, source.snapshot_timestamp, source.cause, source.effect,
     source.severity_level, source.effect_detail, source.cause_detail,
     source.header_text, source.description_text, source.url,
-    source.gtfs_realtime_version, source.ingested_at
+    source.gtfs_realtime_version, source.ingested_at, $static_version_date
 );

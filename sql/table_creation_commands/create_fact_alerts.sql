@@ -1,6 +1,6 @@
 -- This table only contains info about the alert itself, not the affected entities or its duration
 
-CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERT (
+CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS (
     entity_id            STRING        NOT NULL,
     snapshot_timestamp   TIMESTAMP_NTZ NOT NULL,
     cause                STRING,
@@ -13,5 +13,6 @@ CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERT (
     url                  STRING,
     gtfs_realtime_version STRING,
     ingested_at          TIMESTAMP_NTZ,
+    static_version_date  DATE          NOT NULL,
     PRIMARY KEY (entity_id)
 );
