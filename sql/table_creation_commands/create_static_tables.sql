@@ -1,3 +1,4 @@
+-- Creates STATIC dimension tables for versioned GTFS static schedule data.
 -- (Similar to create_raw_tables.sql) Using Claude Sonnet 4.6: Gave pyspark code for extracting dataframe columns for 
 -- static data and asked "write the sql queries to create the corresponding dimension tables for these dataframes in Snowflake"
 -- then made manual modifications for more accurate column types

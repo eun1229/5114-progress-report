@@ -1,3 +1,4 @@
+-- Creates FACT_ALERTS_ACTIVE_PERIODS table for alert active time windows.
 CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS_ACTIVE_PERIODS (
     entity_id      STRING        NOT NULL,
     snapshot_timestamp   TIMESTAMP_NTZ NOT NULL,

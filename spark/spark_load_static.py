@@ -1,3 +1,7 @@
+"""
+Spark job for loading versioned GTFS static data from S3 into Snowflake STATIC dimension tables.
+"""
+
 from pyspark import SparkContext, SparkConf
 from pyspark.sql import SparkSession, DataFrame
 

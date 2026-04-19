@@ -1,3 +1,7 @@
+"""
+Spark job for loading GTFS realtime feeds from S3 into Snowflake RAW tables.
+"""
+
 from pyspark import SparkContext, SparkConf, StorageLevel
 from pyspark.sql import SparkSession, DataFrame
 from functools import reduce

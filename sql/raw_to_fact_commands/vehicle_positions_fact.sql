@@ -1,16 +1,16 @@
--- Used '2026-03-10' as the service date for testing purposes
--- Would need to replace instances of '2026-03-10' and use jinja templating when using Airflow
+-- Loads curated FACT_VEHICLE_POSITIONS rows from RAW_VEHICLE_POSITIONS for a target service date.
+SET target_service_date = TO_DATE('{{ ds }}');
 
 -- Idempotency guard
 DELETE FROM LEMMING_DB.FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS
-WHERE service_date = '2026-03-10';
+WHERE service_date = $target_service_date;
 
 
 -- Getting the correct static version to add to the static_version_date column
 SET static_version_date = (
     SELECT MAX(feed_start_date)
     FROM LEMMING_DB.FINAL_PROJECT_STATIC.DIM_STATIC_VERSIONS
-    WHERE feed_start_date <= '2026-03-10'
+    WHERE feed_start_date <= $target_service_date
 );
 
 -- Load data from raw to fact with the static version column addition
@@ -78,7 +78,7 @@ SELECT
 
 FROM LEMMING_DB.FINAL_PROJECT_RAW.RAW_VEHICLE_POSITIONS r
 
-WHERE r.service_date = '2026-03-10'
+WHERE r.service_date = $target_service_date
   -- is_deleted=True means the agency providing the data reccomends this entity to be deleted.
   -- We will not be including entities with is_deleted=True in our metrics.
   AND (r.is_deleted IS NULL OR r.is_deleted = FALSE);

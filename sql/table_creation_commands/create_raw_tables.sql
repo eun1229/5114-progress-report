@@ -1,3 +1,4 @@
+-- Creates RAW and baseline project schemas/tables for GTFS realtime ingestion.
 -- Using Claude Sonnet 4.6: Gave pyspark code for extracting dataframe columns 
 -- and asked "write the sql queries to create the corresponding tables for this dataframe in Snowflake" 
 -- then made manual modifications for more accurate column types

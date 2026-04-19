@@ -1,12 +1,12 @@
--- Used '2026-03-10' as the service date for testing purposes
--- Would need to replace instances of '2026-03-10' and use jinja templating when using Airflow
+-- Builds occupancy metrics by route-hour, route-day, and overall-day from fact vehicle positions.
+SET target_service_date = TO_DATE('{{ ds }}');
 
 -- Used Claude Sonnet 4.6 (from the same context as create_mart_occupancy.sql)
 
 -- Idempotency guard
-DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR  WHERE service_date = '2026-03-10';
-DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY   WHERE service_date = '2026-03-10';
-DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_OVERALL_DAY WHERE service_date = '2026-03-10';
+DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR  WHERE service_date = $target_service_date;
+DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY   WHERE service_date = $target_service_date;
+DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_OVERALL_DAY WHERE service_date = $target_service_date;
 
 -- Route/hour grain
 INSERT INTO LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR
@@ -22,7 +22,7 @@ WITH bus_snapshots AS (
     JOIN LEMMING_DB.FINAL_PROJECT_STATIC.DIM_ROUTES r
       ON  f.route_id            = r.route_id
       AND f.static_version_date = r.feed_start_date
-    WHERE f.service_date = '2026-03-10'
+    WHERE f.service_date = $target_service_date
       AND r.route_type   = 3       -- bus only
       AND f.current_stop_sequence <> 1 -- don't include the mass of snapshots given when the bus GPS is on before the trip en route
 )
@@ -82,7 +82,7 @@ SELECT
     SUM(pct_no_data_occupancy * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_no_data_occupancy
 
 FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR
-WHERE service_date = '2026-03-10'
+WHERE service_date = $target_service_date
 GROUP BY service_date, route_id;
 
 
@@ -105,5 +105,5 @@ SELECT
     SUM(pct_no_data_occupancy * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_no_data_occupancy
 
 FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY
-WHERE service_date = '2026-03-10'
+WHERE service_date = $target_service_date
 GROUP BY service_date;
