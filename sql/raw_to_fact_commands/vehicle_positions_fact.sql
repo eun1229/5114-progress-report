@@ -2,19 +2,19 @@
 SET target_service_date = TO_DATE('{{ ds }}');
 
 -- Idempotency guard
-DELETE FROM LEMMING_DB.FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS
+DELETE FROM FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS
 WHERE service_date = $target_service_date;
 
 
 -- Getting the correct static version to add to the static_version_date column
 SET static_version_date = (
     SELECT MAX(feed_start_date)
-    FROM LEMMING_DB.FINAL_PROJECT_STATIC.DIM_STATIC_VERSIONS
+    FROM FINAL_PROJECT_STATIC.DIM_STATIC_VERSIONS
     WHERE feed_start_date <= $target_service_date
 );
 
 -- Load data from raw to fact with the static version column addition
-INSERT INTO LEMMING_DB.FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS (
+INSERT INTO FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS (
     service_date,
     hour,
     snapshot_timestamp,
@@ -76,7 +76,7 @@ SELECT
     r.position_timestamp,
     $static_version_date        AS static_version_date
 
-FROM LEMMING_DB.FINAL_PROJECT_RAW.RAW_VEHICLE_POSITIONS r
+FROM FINAL_PROJECT_RAW.RAW_VEHICLE_POSITIONS r
 
 WHERE r.service_date = $target_service_date
   -- is_deleted=True means the agency providing the data reccomends this entity to be deleted.

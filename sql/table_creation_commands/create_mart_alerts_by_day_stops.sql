@@ -2,7 +2,7 @@
 
 -- using stop name instead of the stop id here. There are some stops with multiple stop ids for different parts of the stop (i.e. stairs, elevator, although this mainly applies to light rail stations). Grouping by stop_name would be more helpful for identifying problematic stops overall, rather than a specific mechanical part of a stop.
 
-CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY_STOPS (
+CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY_STOPS (
     alert_date       DATE,
     stop_name        STRING,
     stop_lat         FLOAT,

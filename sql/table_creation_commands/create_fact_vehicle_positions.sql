@@ -1,7 +1,7 @@
 -- Mainly the same as raw_vehicle_positions, but with the addition of the static_version_date
 -- for linking the correct static version data
 
-CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS (
+CREATE TABLE IF NOT EXISTS FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS (
     -- Partitioning / ingestion metadata
     service_date                DATE          NOT NULL,
     hour                        INTEGER,

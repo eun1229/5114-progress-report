@@ -1,5 +1,55 @@
+# Streamlit secrets
 mbta-dashboard/.streamlit/secrets.toml
 .streamlit/secrets.toml
-airflow-env
-mbta-dashboard/__pycache__
-mbta-dashboard/tabs/__pycache__
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python virtual environments
+airflow-env/
+.venv/
+venv/
+env/
+**/.venv/
+
+# Airflow local runtime state
+.airflow/
+
+# Python cache/bytecode
+__pycache__/
+**/__pycache__
+*.py[cod]
+*$py.class
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+
+# Coverage and test artifacts
+.coverage
+.coverage.*
+htmlcov/
+
+# Notebook and OS artifacts
+.ipynb_checkpoints/
+**/.ipynb_checkpoints
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# Logs and local runtime db files
+*.log
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
+**/gtfs-realtime.*

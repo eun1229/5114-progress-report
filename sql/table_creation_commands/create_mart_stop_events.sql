@@ -5,7 +5,7 @@
 --   STATIC.DIM_TRIPS             (needed for direction_id)
 --   STATIC.DIM_ROUTES            (needed for route_type)
 
-CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_MART.STOP_EVENTS (
+CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.STOP_EVENTS (
     service_date                DATE          NOT NULL,
     trip_start_date             DATE,
 

@@ -4,7 +4,7 @@
 -- Uses the Airflow execution date as the source slice.
 SET target_service_date = TO_DATE('{{ ds }}');
 
-MERGE INTO LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS_ACTIVE_PERIODS AS target
+MERGE INTO FINAL_PROJECT_FACT.FACT_ALERTS_ACTIVE_PERIODS AS target
 USING (
     SELECT
         entity_id,
@@ -21,7 +21,7 @@ USING (
             ) / 60.0
         END                                   AS duration_hours,
         (ap.value:end IS NULL)                AS is_open_ended
-    FROM LEMMING_DB.FINAL_PROJECT_RAW.RAW_ALERTS,
+    FROM FINAL_PROJECT_RAW.RAW_ALERTS,
     LATERAL FLATTEN(input => PARSE_JSON(active_period), outer => TRUE) ap
     WHERE service_date = $target_service_date
       AND is_deleted = FALSE

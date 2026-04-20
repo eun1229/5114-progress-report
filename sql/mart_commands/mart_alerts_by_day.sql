@@ -4,20 +4,20 @@
 
 SET target_service_date = TO_DATE('{{ ds }}');
 
-DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY
+DELETE FROM FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY
 WHERE alert_date = $target_service_date;
 
-INSERT INTO LEMMING_DB.FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY
+INSERT INTO FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY
 WITH active_on_date AS (
     SELECT
         far.entity_id,
         far.route_id,
         fa.severity_level,
         $target_service_date AS alert_date
-    FROM LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS_ACTIVE_PERIODS fa_activep
-    JOIN LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS_ROUTES far
+    FROM FINAL_PROJECT_FACT.FACT_ALERTS_ACTIVE_PERIODS fa_activep
+    JOIN FINAL_PROJECT_FACT.FACT_ALERTS_ROUTES far
         ON fa_activep.entity_id = far.entity_id
-    JOIN LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS fa
+    JOIN FINAL_PROJECT_FACT.FACT_ALERTS fa
         ON fa_activep.entity_id = fa.entity_id
     WHERE far.route_type = 3
     AND DATE(fa_activep.active_start) <= $target_service_date

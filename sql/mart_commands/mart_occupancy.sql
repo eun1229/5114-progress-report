@@ -4,12 +4,12 @@ SET target_service_date = TO_DATE('{{ ds }}');
 -- Used Claude Sonnet 4.6 (from the same context as create_mart_occupancy.sql)
 
 -- Idempotency guard
-DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR  WHERE service_date = $target_service_date;
-DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY   WHERE service_date = $target_service_date;
-DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_OVERALL_DAY WHERE service_date = $target_service_date;
+DELETE FROM FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR  WHERE service_date = $target_service_date;
+DELETE FROM FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY   WHERE service_date = $target_service_date;
+DELETE FROM FINAL_PROJECT_MART.METRIC_OCCUPANCY_OVERALL_DAY WHERE service_date = $target_service_date;
 
 -- Route/hour grain
-INSERT INTO LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR
+INSERT INTO FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR
 WITH bus_snapshots AS (
     SELECT
         f.service_date,
@@ -18,8 +18,8 @@ WITH bus_snapshots AS (
         r.route_short_name,
         f.occupancy_percentage,
         f.occupancy_status
-    FROM LEMMING_DB.FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS f
-    JOIN LEMMING_DB.FINAL_PROJECT_STATIC.DIM_ROUTES r
+    FROM FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS f
+    JOIN FINAL_PROJECT_STATIC.DIM_ROUTES r
       ON  f.route_id            = r.route_id
       AND f.static_version_date = r.feed_start_date
     WHERE f.service_date = $target_service_date
@@ -60,7 +60,7 @@ GROUP BY service_date, hour, route_id;
 
 
 -- Route/day grain — aggregate from the hour grain
-INSERT INTO LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY
+INSERT INTO FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY
 SELECT
     service_date,
     route_id,
@@ -81,13 +81,13 @@ SELECT
     SUM(pct_full             * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_full,
     SUM(pct_no_data_occupancy * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_no_data_occupancy
 
-FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR
+FROM FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR
 WHERE service_date = $target_service_date
 GROUP BY service_date, route_id;
 
 
 -- Network wide day grain — aggregate all bus routes
-INSERT INTO LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_OVERALL_DAY
+INSERT INTO FINAL_PROJECT_MART.METRIC_OCCUPANCY_OVERALL_DAY
 SELECT
     service_date,
     SUM(snapshot_count)                                         AS snapshot_count,
@@ -104,6 +104,6 @@ SELECT
     SUM(pct_full             * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_full,
     SUM(pct_no_data_occupancy * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_no_data_occupancy
 
-FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY
+FROM FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY
 WHERE service_date = $target_service_date
 GROUP BY service_date;

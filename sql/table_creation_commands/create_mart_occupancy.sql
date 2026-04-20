@@ -1,3 +1,10 @@
+-- LEGACY REFERENCE FILE ONLY.
+-- This file is NOT executed by Airflow.
+-- Airflow uses these files in `ensure_mart_tables` instead:
+--   table_creation_commands/create_mart_occupancy_route_hour.sql
+--   table_creation_commands/create_mart_occupancy_route_day.sql
+--   table_creation_commands/create_mart_occupancy_overall_day.sql
+
 -- Used for getting occupancy metrics. This metric should be filterable by route_id, service_date, and hour
 -- Grain choices:
 --   route_hour  — one row per (service_date, route_id, hour)
@@ -11,7 +18,7 @@
 -- Used Claude Sonnet 4.6 with manual modifications to generate the query based on the vehicle_positions table and the above context 
 
 -- Route/hour grain
-CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR (
+CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR (
     service_date                DATE          NOT NULL,
     hour                        INTEGER       NOT NULL,
     route_id                    VARCHAR       NOT NULL,
@@ -39,7 +46,7 @@ CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_
 CLUSTER BY (service_date);
 
 -- Route/day grain (daily rollup)
-CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY (
+CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY (
     service_date                DATE          NOT NULL,
     route_id                    VARCHAR       NOT NULL,
     route_short_name            VARCHAR,
@@ -59,7 +66,7 @@ CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_
 CLUSTER BY (service_date);
 
 -- Daily rollup (all bus routes combined)
-CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_OVERALL_DAY (
+CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.METRIC_OCCUPANCY_OVERALL_DAY (
     service_date                DATE          NOT NULL,
     snapshot_count              INTEGER,
     avg_occupancy_pct           FLOAT,

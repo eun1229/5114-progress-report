@@ -8,11 +8,11 @@ SET target_service_date = TO_DATE('{{ ds }}');
 -- Resolve static version for this load date.
 SET static_version_date = (
     SELECT MAX(feed_start_date)
-    FROM LEMMING_DB.FINAL_PROJECT_STATIC.DIM_STATIC_VERSIONS
+    FROM FINAL_PROJECT_STATIC.DIM_STATIC_VERSIONS
     WHERE feed_start_date <= $target_service_date
 );
 
-MERGE INTO LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS AS target
+MERGE INTO FINAL_PROJECT_FACT.FACT_ALERTS AS target
 USING (
     SELECT
         entity_id,
@@ -27,7 +27,7 @@ USING (
         severity_level,
         gtfs_realtime_version,
         ingested_at
-    FROM LEMMING_DB.FINAL_PROJECT_RAW.RAW_ALERTS
+    FROM FINAL_PROJECT_RAW.RAW_ALERTS
     WHERE service_date = $target_service_date
       AND is_deleted = FALSE
     QUALIFY ROW_NUMBER() OVER (

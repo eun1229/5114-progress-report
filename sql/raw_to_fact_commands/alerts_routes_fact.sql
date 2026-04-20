@@ -4,7 +4,7 @@
 -- Used Claude Sonnet 4.6 for help with the merging logic.
 SET target_service_date = TO_DATE('{{ ds }}');
 
-MERGE INTO LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS_ROUTES AS target
+MERGE INTO FINAL_PROJECT_FACT.FACT_ALERTS_ROUTES AS target
 USING (
     SELECT DISTINCT
         entity_id,
@@ -14,7 +14,7 @@ USING (
         ie.value:route_type::INT    AS route_type,
         ie.value:direction_id::INT  AS direction_id,
         ie.value:agency_id::STRING  AS agency_id
-    FROM LEMMING_DB.FINAL_PROJECT_RAW.RAW_ALERTS,
+    FROM FINAL_PROJECT_RAW.RAW_ALERTS,
     LATERAL FLATTEN(input => PARSE_JSON(informed_entity)) ie
     WHERE service_date = $target_service_date
       AND is_deleted = FALSE
