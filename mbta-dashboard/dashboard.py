@@ -8,6 +8,7 @@ from tabs.occupancy_hour_tab import render as render_occupancy_hour
 from tabs.stop_events_tab import render as render_stop_events
 from tabs.alerts_route_tab import render as render_alerts_route
 from tabs.alerts_stop_tab import render as render_alerts_stop
+from tabs.on_time_performance_tab import render as render_on_time_performance
 
 
 st.set_page_config(
@@ -68,41 +69,42 @@ if not selected_routes:
 route_filter = "', '".join(selected_routes)
 
 # ── Tabs ─────────────────────────────────────────────────────
-tab0, tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab0, tab2, tab5, tab6, tab7 = st.tabs([
     "Live tab",
-    "System overview",
-    "Occupancy by route",
-    "Occupancy by hour",
-    "Stop events",
+    "Occupancy %",
     "Alerts by route",
-    "Alerts by stop"
+    "Alerts by stop", 
+    "On time performance"
 ])
 
 # ── Tab 0: Live tab ──────────────────────────────────────────
 with tab0:
     render_live_tab()
 
-# ── Tab 1: System overview ───────────────────────────────────
-with tab1:
-    render_system_overview(query, start_date, end_date)
+# # ── Tab 1: System overview ───────────────────────────────────
+# with tab1:
+#     render_system_overview(query, start_date, end_date)
 
 # ── Tab 2: Occupancy by route ────────────────────────────────
 with tab2:
-    render_occupancy_route(query, route_filter)
+    render_occupancy_route(query, start_date, end_date, route_filter)
 
-# ── Tab 3: Occupancy by hour ─────────────────────────────────
-with tab3:
-    render_occupancy_hour(query, start_date, end_date, route_filter)
+# # ── Tab 3: Occupancy by hour ─────────────────────────────────
+# with tab3:
+#     render_occupancy_hour(query, start_date, end_date, route_filter)
 
-# ── Tab 4: Stop events ───────────────────────────────────────
-with tab4:
-    render_stop_events(query, start_date, end_date, route_filter)
+# # ── Tab 4: Stop events ───────────────────────────────────────
+# with tab4:
+#     render_stop_events(query, start_date, end_date, route_filter)
 
 with tab5:
-    render_alerts_route(query, start_date, end_date)
+    render_alerts_route(query, start_date, end_date, route_filter)
 
 with tab6:
     render_alerts_stop(query, start_date, end_date)
+
+with tab7:
+    render_on_time_performance(query, start_date, end_date, route_filter)
 
 # ── Footer ────────────────────────────────────────────────────
 st.divider()
