@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS FINAL_PROJECT_RAW.RAW_ALERTS (
     tts_header_text     VARIANT,
     tts_description_text VARIANT,
     cause_detail        VARIANT,
-    effect_detaiLEMMING_DB.FINAL_PROJECT_RAW.RAW_ALERTSl       VARIANT
+    effect_detail       VARIANT
 );
 
 
