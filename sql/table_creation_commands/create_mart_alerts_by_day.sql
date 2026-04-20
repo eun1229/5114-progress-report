@@ -2,7 +2,7 @@
 -- This metric could help highlight if there are periods of time (i.e. during winter, around public holidays) that 
 -- result in more alerts and disruptions than usual
 
-CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY (
+CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY (
     alert_date       DATE,
     route_id         STRING,
     route_name       STRING,

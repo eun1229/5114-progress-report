@@ -1,9 +1,11 @@
 -- this metric can be used to view particular stops that are highly affected by alerts 
 
-DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY_STOPS
-WHERE alert_date = '2026-03-11';
+SET target_service_date = TO_DATE('{{ ds }}');
 
-INSERT INTO LEMMING_DB.FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY_STOPS
+DELETE FROM FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY_STOPS
+WHERE alert_date = $target_service_date;
+
+INSERT INTO FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY_STOPS
 WITH active_on_date AS (
     SELECT
         far.entity_id,
@@ -12,18 +14,18 @@ WITH active_on_date AS (
         st_dim.stop_lat as stop_lat, 
         st_dim.stop_lon as stop_lon,
         fa.severity_level,
-        '2026-03-11' AS alert_date
-    FROM LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS_ACTIVE_PERIODS fa_activep
-    JOIN LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS_ROUTES far
+        $target_service_date AS alert_date
+    FROM FINAL_PROJECT_FACT.FACT_ALERTS_ACTIVE_PERIODS fa_activep
+    JOIN FINAL_PROJECT_FACT.FACT_ALERTS_ROUTES far
         ON fa_activep.entity_id = far.entity_id
-    JOIN LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS fa
+    JOIN FINAL_PROJECT_FACT.FACT_ALERTS fa
         ON fa_activep.entity_id = fa.entity_id
-    JOIN LEMMING_DB.FINAL_PROJECT_STATIC.DIM_STOPS st_dim -- get the stop name, since it's more intuitive for stops
+    JOIN FINAL_PROJECT_STATIC.DIM_STOPS st_dim -- get the stop name, since it's more intuitive for stops
       ON  far.stop_id           = st_dim.stop_id
       AND fa.static_version_date = st_dim.feed_start_date
     WHERE far.route_type = 3
-      AND DATE(fa_activep.active_start) <= '2026-03-11'
-      AND (fa_activep.active_end IS NULL OR DATE(fa_activep.active_end) >= '2026-03-11')
+    AND DATE(fa_activep.active_start) <= $target_service_date
+    AND (fa_activep.active_end IS NULL OR DATE(fa_activep.active_end) >= $target_service_date)
 )
 SELECT
     alert_date,

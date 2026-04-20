@@ -1,14 +1,14 @@
--- Used '2026-03-10' as the service date for testing purposes
--- Would need to replace instances of '2026-03-10' and use jinja templating when using Airflow
+-- Builds stop event records with scheduled vs actual arrivals for on-time performance analysis.
+SET target_service_date = TO_DATE('{{ ds }}');
 
 -- Used Claude Sonnet 4.6 for the QUALIFY and DATEDIFF statements and for aid with join logic.
 
 -- Idempotency guard
-DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.STOP_EVENTS
-WHERE trip_start_date = '2026-03-10';
+DELETE FROM FINAL_PROJECT_MART.STOP_EVENTS
+WHERE trip_start_date = $target_service_date;
 
 
-INSERT INTO LEMMING_DB.FINAL_PROJECT_MART.STOP_EVENTS (
+INSERT INTO FINAL_PROJECT_MART.STOP_EVENTS (
     service_date,
     trip_start_date,
     trip_id,
@@ -53,9 +53,9 @@ WITH stopped_at AS (
             f.position_timestamp
         )                               AS actual_arrival_seconds
 
-    FROM LEMMING_DB.FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS f
+    FROM FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS f
 
-    WHERE f.trip_start_date   = '2026-03-10'
+        WHERE f.trip_start_date = $target_service_date
       AND f.current_status = 'STOPPED_AT'
 
     -- QUALIFY reduces to the earliest snapshot per (trip_id, stop_sequence)
@@ -101,18 +101,18 @@ enriched AS (
     FROM stopped_at s
 
     -- Scheduled stop time
-    JOIN LEMMING_DB.FINAL_PROJECT_STATIC.DIM_STOP_TIMES st
+    JOIN FINAL_PROJECT_STATIC.DIM_STOP_TIMES st
       ON  s.trip_id             = st.trip_id
       AND s.stop_sequence       = st.stop_sequence
       AND s.static_version_date = st.feed_start_date
 
     -- Stop name 
-    JOIN LEMMING_DB.FINAL_PROJECT_STATIC.DIM_STOPS st_dim
+    JOIN FINAL_PROJECT_STATIC.DIM_STOPS st_dim
       ON  s.stop_id             = st_dim.stop_id
       AND s.static_version_date = st_dim.feed_start_date
 
     -- Route type, used for bus filter below
-    JOIN LEMMING_DB.FINAL_PROJECT_STATIC.DIM_ROUTES r
+    JOIN FINAL_PROJECT_STATIC.DIM_ROUTES r
       ON  s.route_id            = r.route_id
       AND s.static_version_date = r.feed_start_date
 

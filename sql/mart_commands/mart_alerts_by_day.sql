@@ -2,30 +2,37 @@
 -- in the visualization, it probably makes the most sense to view this aggregated over all routes for a particular day, as a stacked bar chart for the type of alert counts.
 -- we could also use this to show which routes have the most alerts over a specified period of time
 
--- replace '2026-03-11' :service_date
+SET target_service_date = TO_DATE('{{ ds }}');
 
-DELETE FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY
-WHERE alert_date = '2026-03-11';
+DELETE FROM FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY
+WHERE alert_date = $target_service_date;
 
-INSERT INTO LEMMING_DB.FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY
+INSERT INTO FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY (
+    alert_date,
+    route_id,
+    alert_count,
+    severe_count,
+    warning_count,
+    info_count
+)
 WITH active_on_date AS (
     SELECT
         far.entity_id,
         far.route_id,
         r_dim.route_short_name as route_name,
         fa.severity_level,
-        '2026-03-11' AS alert_date
-    FROM LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS_ACTIVE_PERIODS fa_activep
-    JOIN LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS_ROUTES far
+        $target_service_date AS alert_date
+    FROM FINAL_PROJECT_FACT.FACT_ALERTS_ACTIVE_PERIODS fa_activep
+    JOIN FINAL_PROJECT_FACT.FACT_ALERTS_ROUTES far
         ON fa_activep.entity_id = far.entity_id
-    JOIN LEMMING_DB.FINAL_PROJECT_FACT.FACT_ALERTS fa
+    JOIN FINAL_PROJECT_FACT.FACT_ALERTS fa
         ON fa_activep.entity_id = fa.entity_id
     JOIN LEMMING_DB.FINAL_PROJECT_STATIC.DIM_ROUTES r_dim -- get route name for dashboard
       ON  far.route_id           = r_dim.route_id
       AND fa.static_version_date = r_dim.feed_start_date
     WHERE far.route_type = 3
-      AND DATE(fa_activep.active_start) <= '2026-03-11'
-      AND (fa_activep.active_end IS NULL OR DATE(fa_activep.active_end) >= '2026-03-11')
+    AND DATE(fa_activep.active_start) <= $target_service_date
+    AND (fa_activep.active_end IS NULL OR DATE(fa_activep.active_end) >= $target_service_date)
 )
 SELECT
     alert_date,
