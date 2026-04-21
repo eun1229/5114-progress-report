@@ -3,7 +3,7 @@
 -- We keep only the newest snapshot per entity in each run.
 -- Merge preserves latest-state semantics across backfills (older runs won't overwrite newer state).
 -- Used Claude Sonnet 4.6 for help with the merging logic.
-SET target_service_date = TO_DATE('{{ ds }}');
+SET target_service_date = TO_DATE('{{ ds }}') - 2;
 
 -- Resolve static version for this load date.
 SET static_version_date = (
@@ -29,7 +29,7 @@ USING (
         ingested_at
     FROM FINAL_PROJECT_RAW.RAW_ALERTS
     WHERE service_date = $target_service_date
-      AND is_deleted = FALSE
+      AND (is_deleted = FALSE OR is_deleted IS NULL)
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY entity_id
         ORDER BY snapshot_timestamp DESC

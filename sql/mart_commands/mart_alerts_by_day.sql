@@ -2,7 +2,7 @@
 -- in the visualization, it probably makes the most sense to view this aggregated over all routes for a particular day, as a stacked bar chart for the type of alert counts.
 -- we could also use this to show which routes have the most alerts over a specified period of time
 
-SET target_service_date = TO_DATE('{{ ds }}');
+SET target_service_date = TO_DATE('{{ ds }}') - 2;
 
 DELETE FROM FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY
 WHERE alert_date = $target_service_date;
@@ -10,6 +10,7 @@ WHERE alert_date = $target_service_date;
 INSERT INTO FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY (
     alert_date,
     route_id,
+    route_name,
     alert_count,
     severe_count,
     warning_count,

@@ -18,7 +18,7 @@ def render(query, start_date, end_date, route_filter):
             AVG(CASE WHEN is_on_time THEN 1.0 ELSE 0 END) * 100 AS on_time_pct,
             AVG(CASE WHEN arrival_delay_seconds < -150 THEN 1.0 ELSE 0 END) * 100 AS early_pct,
             AVG(CASE WHEN arrival_delay_seconds > 300 THEN 1.0 ELSE 0 END) * 100 AS late_pct
-        FROM LEMMING_DB.FINAL_PROJECT_MART.STOP_EVENTS
+        FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_STOP_EVENTS
         WHERE trip_start_date BETWEEN '{start_date}' AND '{end_date}'
           AND route_name IN ('{route_filter}')
           AND is_on_time IS NOT NULL

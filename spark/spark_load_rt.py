@@ -3,6 +3,7 @@ Spark job for loading GTFS realtime feeds from S3 into Snowflake RAW tables.
 """
 
 import argparse
+from datetime import date, timedelta
 from pathlib import Path
 from pyspark import SparkContext, SparkConf, StorageLevel
 from pyspark.sql import SparkSession, DataFrame
@@ -374,7 +375,9 @@ if __name__ == "__main__":
     spark.sparkContext.setLogLevel("WARN")
 
     # configurations to be set by pipeline
-    service_date = require_service_date(args.service_date)
+    service_date = (
+        date.fromisoformat(require_service_date(args.service_date)) - timedelta(days=1)
+    ).isoformat()
     rt_feed_option = args.feed_type
 
     # load selected rt data for a day into a single df and write to table in RAW schema in Snowflake

@@ -1,32 +1,30 @@
--- Used for getting on time performance metric (as well as predicted vs actual arrival, if we decide to include this metric)
+-- Used for getting on time performance metric by calculating the % of stop events with is_on_time = TRUE
 -- Built from:
---   FACT.FACT_VEHICLE_POSITIONS  (we'll get rows where current_status = STOPPED_AT (when vehicles actually stop at stop_sequence for the route))
---   STATIC.DIM_STOP_TIMES        (scheduled times (expected stop times))
+--   FACT.FACT_VEHICLE_POSITIONS  (we'll get rows where current_status = STOPPED_AT (when vehicles ACTUALLY stop at the stop_id for the trip))
+--   STATIC.DIM_STOP_TIMES        (scheduled times (EXPECTED stop times))
 --   STATIC.DIM_TRIPS             (needed for direction_id)
---   STATIC.DIM_ROUTES            (needed for route_type)
+--   STATIC.DIM_ROUTES            (needed for route_type and route name)
 
-CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.STOP_EVENTS (
+CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.METRIC_STOP_EVENTS (
     service_date                DATE          NOT NULL,
     trip_start_date             DATE,
+    hour                        INTEGER,
 
     -- Trip / route identifiers
     trip_id                     VARCHAR       NOT NULL,
     route_id                    VARCHAR,
+    route_name                  VARCHAR,
     route_type                  INTEGER,      -- 3 = bus
     direction_id                INTEGER,
 
     -- Stop identifiers
     stop_id                     VARCHAR,
-    stop_sequence               INTEGER       NOT NULL,
-    stop_name                   VARCHAR,      
-
-    -- Vehicle
-    vehicle_id                  VARCHAR,
-    vehicle_label               VARCHAR,
+    stop_sequence               INTEGER       NOT NULL,    
 
     -- Earliest STOPPED_AT position_timestamp
-    -- for this (trip_id, stop_sequence) on this service_date
+    -- for this (trip_id, stop_sequence) on this trip_start_date
     actual_arrival_ts           TIMESTAMP_NTZ,
+    actual_arrival_seconds      INTEGER,      -- seconds since midnight on trip_start_date
 
     -- Scheduled arrival from stop_times
     -- Stored as both the raw string and derived seconds so queries can use whichever is convenient
@@ -52,4 +50,4 @@ CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.STOP_EVENTS (
 
     CONSTRAINT pk_stop_events PRIMARY KEY (service_date, trip_id, stop_sequence)
 )
-CLUSTER BY (service_date, route_id);
+CLUSTER BY (service_date, route_name); -- aligns with columns for visualization

@@ -20,7 +20,7 @@ Run from project root:
 cd /Users/duyhn/Downloads/5114-final-project
 ```
 
-Create and activate virtual environment:
+Create and activate virtual environment (use python3.12 if you run into dependency conflicts in the next step):
 
 ```bash
 python3 -m venv .venv
@@ -143,7 +143,7 @@ airflow dags list | grep mbta_daily_etl_pipeline
 Spark helper checks:
 
 ```bash
-bash spark/run_spark_load_static.sh
+bash spark/run_spark_load_static.sh 2026-03-10
 bash spark/run_spark_load_rt.sh 2026-03-10 vehicle_positions
 bash spark/run_spark_load_rt.sh 2026-03-10 alerts
 ```

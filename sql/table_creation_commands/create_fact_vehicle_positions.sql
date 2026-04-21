@@ -1,7 +1,11 @@
 -- Mainly the same as raw_vehicle_positions, but with the addition of the static_version_date
 -- for linking the correct static version data
 
-CREATE TABLE IF NOT EXISTS FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS (
+-- service_date is the date the snapshot was taken (the bucket it belongs to)
+-- trip_start_date is the date the trip started (so is used for linking static version)
+-- this distinction is important because some trips may start on one day and end on another,
+
+CREATE TABLE IF NOT EXISTS LEMMING_DB.FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS (
     -- Partitioning / ingestion metadata
     service_date                DATE          NOT NULL,
     hour                        INTEGER,
@@ -50,6 +54,6 @@ CREATE TABLE IF NOT EXISTS FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS (
     -- to link the correct static version
     static_version_date         DATE          NOT NULL,
 
-    CONSTRAINT pk_fact_vehicle_positions PRIMARY KEY (service_date, entity_id, snapshot_timestamp)
+    PRIMARY KEY (service_date, entity_id, snapshot_timestamp)
 )
-CLUSTER BY (service_date, route_id);
+CLUSTER BY (trip_start_date, service_date, route_id); -- clusters by trip_start_date, service_date, and route_id to improve join performance, even for overnight trips

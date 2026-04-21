@@ -3,8 +3,8 @@
 CREATE TABLE IF NOT EXISTS FINAL_PROJECT_FACT.FACT_ALERTS_ROUTES (
     entity_id    STRING  NOT NULL,
     snapshot_timestamp   TIMESTAMP_NTZ NOT NULL,
-    route_id     STRING,
-    stop_id      STRING,
+    route_id     STRING   NOT NULL,
+    stop_id      STRING   NOT NULL,
     route_type   INT,
     direction_id INT,
     agency_id    STRING,

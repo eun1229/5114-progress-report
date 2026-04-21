@@ -3,11 +3,6 @@
 -- and asked "write the sql queries to create the corresponding tables for this dataframe in Snowflake" 
 -- then made manual modifications for more accurate column types
 
-CREATE SCHEMA IF NOT EXISTS FINAL_PROJECT_RAW;
-CREATE SCHEMA IF NOT EXISTS FINAL_PROJECT_STATIC;
-CREATE SCHEMA IF NOT EXISTS FINAL_PROJECT_FACT;
-CREATE SCHEMA IF NOT EXISTS FINAL_PROJECT_CURATED;
-
 -- Creating the tables
 CREATE TABLE IF NOT EXISTS FINAL_PROJECT_RAW.RAW_VEHICLE_POSITIONS (
     -- Partitioning / ingestion metadata

@@ -2,7 +2,7 @@
 -- One row per unique (entity_id, route_id, stop_id), keeping the newest snapshot when duplicates exist.
 -- Merge avoids regression when older backfill dates are rerun after newer data has already loaded.
 -- Used Claude Sonnet 4.6 for help with the merging logic.
-SET target_service_date = TO_DATE('{{ ds }}');
+SET target_service_date = TO_DATE('{{ ds }}') - 2;
 
 MERGE INTO FINAL_PROJECT_FACT.FACT_ALERTS_ROUTES AS target
 USING (
@@ -17,7 +17,7 @@ USING (
     FROM FINAL_PROJECT_RAW.RAW_ALERTS,
     LATERAL FLATTEN(input => PARSE_JSON(informed_entity)) ie
     WHERE service_date = $target_service_date
-      AND is_deleted = FALSE
+      AND (is_deleted = FALSE OR is_deleted IS NULL)
       AND ie.value:route_id::STRING IS NOT NULL
       AND ie.value:stop_id::STRING IS NOT NULL
     QUALIFY ROW_NUMBER() OVER (

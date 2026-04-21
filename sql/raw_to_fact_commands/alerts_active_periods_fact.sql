@@ -2,7 +2,7 @@
 -- Active periods are flattened from the JSON array and keyed by (entity_id, period_index).
 -- Merge keeps period updates (for example, end time added later) without regressing to older snapshots.
 -- Uses the Airflow execution date as the source slice.
-SET target_service_date = TO_DATE('{{ ds }}');
+SET target_service_date = TO_DATE('{{ ds }}') - 2;
 
 MERGE INTO FINAL_PROJECT_FACT.FACT_ALERTS_ACTIVE_PERIODS AS target
 USING (
@@ -24,7 +24,8 @@ USING (
     FROM FINAL_PROJECT_RAW.RAW_ALERTS,
     LATERAL FLATTEN(input => PARSE_JSON(active_period), outer => TRUE) ap
     WHERE service_date = $target_service_date
-      AND is_deleted = FALSE
+      AND (is_deleted = FALSE OR is_deleted IS NULL)
+      AND (active_period <> [])
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY entity_id, period_index
         ORDER BY snapshot_timestamp DESC

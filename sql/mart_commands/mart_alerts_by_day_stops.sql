@@ -1,6 +1,6 @@
 -- this metric can be used to view particular stops that are highly affected by alerts 
 
-SET target_service_date = TO_DATE('{{ ds }}');
+SET target_service_date = TO_DATE('{{ ds }}') - 2;
 
 DELETE FROM FINAL_PROJECT_MART.METRIC_ALERTS_BY_DAY_STOPS
 WHERE alert_date = $target_service_date;

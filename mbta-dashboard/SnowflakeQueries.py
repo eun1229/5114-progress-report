@@ -175,7 +175,7 @@ def get_stop_events(start_date, end_date) -> pd.DataFrame:
             COUNT(*) AS event_count,
             COUNT(DISTINCT TRIP_ID) AS trip_count,
             COUNT(DISTINCT VEHICLE_ID) AS vehicle_count
-        FROM LEMMING_DB.FINAL_PROJECT_MART.STOP_EVENTS
+        FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_STOP_EVENTS
         WHERE SERVICE_DATE BETWEEN '{start_date}' AND '{end_date}'
         GROUP BY 1, 2, 3
         ORDER BY event_count DESC

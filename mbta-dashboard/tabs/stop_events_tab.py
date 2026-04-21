@@ -14,7 +14,7 @@ def render(query, start_date, end_date, route_filter):
             COUNT(*) AS event_count,
             COUNT(DISTINCT TRIP_ID) AS trip_count,
             COUNT(DISTINCT VEHICLE_ID) AS vehicle_count
-        FROM LEMMING_DB.FINAL_PROJECT_MART.STOP_EVENTS
+        FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_STOP_EVENTS
         WHERE SERVICE_DATE BETWEEN '{start_date}' AND '{end_date}'
         AND ROUTE_ID IN (
             SELECT ROUTE_ID FROM LEMMING_DB.FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY

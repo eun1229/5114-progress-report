@@ -1,26 +1,26 @@
 -- Builds stop event records with scheduled vs actual arrivals for on-time performance analysis.
-SET target_service_date = TO_DATE('{{ ds }}');
+SET target_service_date = TO_DATE('{{ ds }}') - 2;
 
 -- Used Claude Sonnet 4.6 for the QUALIFY and DATEDIFF statements and for aid with join logic.
 
 -- Idempotency guard
-DELETE FROM FINAL_PROJECT_MART.STOP_EVENTS
+DELETE FROM FINAL_PROJECT_MART.METRIC_STOP_EVENTS
 WHERE trip_start_date = $target_service_date;
 
 
-INSERT INTO FINAL_PROJECT_MART.STOP_EVENTS (
+INSERT INTO FINAL_PROJECT_MART.METRIC_STOP_EVENTS (
     service_date,
     trip_start_date,
+    hour,
     trip_id,
     route_id,
+    route_name,
     route_type,
     direction_id,
     stop_id,
     stop_sequence,
-    stop_name,
-    vehicle_id,
-    vehicle_label,
     actual_arrival_ts,
+    actual_arrival_seconds,
     scheduled_arrival_time,
     scheduled_arrival_seconds,
     arrival_delay_seconds,
@@ -29,17 +29,16 @@ INSERT INTO FINAL_PROJECT_MART.STOP_EVENTS (
     occupancy_percentage,
     static_version_date
 )
-WITH stopped_at AS (
+WITH stopped_at AS ( -- this is to get the actual arrival times of a vehicle when they've stopped at a stop.
     SELECT
         f.service_date,
         f.trip_start_date,
+        f.hour,
         f.trip_id,
         f.route_id,
         f.direction_id,
         f.stop_id,
         f.current_stop_sequence         AS stop_sequence,
-        f.vehicle_id,
-        f.vehicle_label,
         f.position_timestamp            AS actual_arrival_ts,
         f.occupancy_status,
         f.occupancy_percentage,
@@ -55,7 +54,7 @@ WITH stopped_at AS (
 
     FROM FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS f
 
-        WHERE f.trip_start_date = $target_service_date
+      WHERE f.trip_start_date = $target_service_date
       AND f.current_status = 'STOPPED_AT'
 
     -- QUALIFY reduces to the earliest snapshot per (trip_id, stop_sequence)
@@ -71,16 +70,16 @@ enriched AS (
     SELECT
         s.service_date,
         s.trip_start_date,
+        s.hour,
         s.trip_id,
         s.route_id,
+        r.route_short_name              AS route_name,
         r.route_type,
         s.direction_id,
         s.stop_id,
         s.stop_sequence,
-        st_dim.stop_name,
-        s.vehicle_id,
-        s.vehicle_label,
         s.actual_arrival_ts,
+        s.actual_arrival_seconds,
         st.arrival_time                 AS scheduled_arrival_time,
         st.arrival_seconds              AS scheduled_arrival_seconds,
 
@@ -106,11 +105,6 @@ enriched AS (
       AND s.stop_sequence       = st.stop_sequence
       AND s.static_version_date = st.feed_start_date
 
-    -- Stop name 
-    JOIN FINAL_PROJECT_STATIC.DIM_STOPS st_dim
-      ON  s.stop_id             = st_dim.stop_id
-      AND s.static_version_date = st_dim.feed_start_date
-
     -- Route type, used for bus filter below
     JOIN FINAL_PROJECT_STATIC.DIM_ROUTES r
       ON  s.route_id            = r.route_id
@@ -126,16 +120,16 @@ enriched AS (
 SELECT
     service_date,
     trip_start_date,
+    hour,
     trip_id,
     route_id,
+    route_name,
     route_type,
     direction_id,
     stop_id,
     stop_sequence,
-    stop_name,
-    vehicle_id,
-    vehicle_label,
     actual_arrival_ts,
+    actual_arrival_seconds,
     scheduled_arrival_time,
     scheduled_arrival_seconds,
     arrival_delay_seconds,

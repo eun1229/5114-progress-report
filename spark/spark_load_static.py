@@ -4,6 +4,7 @@ Spark job for loading versioned GTFS static data from S3 into Snowflake STATIC d
 
 import argparse
 import re
+from datetime import date, timedelta
 from pathlib import Path
 from pyspark import SparkContext, SparkConf
 from pyspark.sql import SparkSession, DataFrame
@@ -191,7 +192,6 @@ def _time_to_seconds(col_name: str) -> F.Column:
     """
     parts = F.split(F.col(col_name), ":")
     hour = parts.getItem(0).cast(IntegerType())
-    hour = F.when(hour >= 24, hour - 24).otherwise(hour)
     return F.when(F.col(col_name).isNull() | (F.col(col_name) == ""), None).otherwise(
         hour * 3600
         + parts.getItem(1).cast(IntegerType()) * 60
@@ -504,7 +504,10 @@ if __name__ == "__main__":
     if SNOWFLAKE_ROLE:
         sfOptions["sfRole"] = SNOWFLAKE_ROLE
 
-    service_date = normalize_service_date(args.service_date)
+    service_date_to_load = (
+        date.fromisoformat(args.service_date) - timedelta(days=1)
+    ).isoformat()
+    service_date = normalize_service_date(service_date_to_load)
     if service_date:
         static_data_directory = get_static_data_directory_if_exists(spark, service_date)
         not_found_message = f"No static data update for date {service_date}."

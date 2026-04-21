@@ -17,7 +17,7 @@ default_args = {
     "email_on_failure": False,
     "email_on_retry": False,
     "retries": 3,
-    "retry_delay": timedelta(minutes=5),
+    "retry_delay": timedelta(minutes=1),
 }
 
 PROJECT_DIR = os.environ.get("PROJECT_DIR", str(Path(__file__).resolve().parents[1]))
@@ -46,7 +46,7 @@ def bash_with_env(command: str) -> str:
     default_args=default_args,
     description="Daily ETL pipeline for MBTA performance metrics",
     schedule="@daily",
-    start_date=datetime(2026, 2, 27),  # Start date determines where the backfill begins
+    start_date=datetime(2026, 3, 2),  # Start date determines where the backfill begins
     catchup=True,  # Set to True to enable automatic backfilling
     max_active_runs=1,  # Throttles the backfill so you don't overload your VM/Spark cluster
     template_searchpath=[SQL_TEMPLATE_SEARCHPATH],
@@ -65,9 +65,22 @@ def mbta_daily_etl_pipeline():
             "CREATE SCHEMA IF NOT EXISTS FINAL_PROJECT_RAW",
             "CREATE SCHEMA IF NOT EXISTS FINAL_PROJECT_STATIC",
             "CREATE SCHEMA IF NOT EXISTS FINAL_PROJECT_FACT",
-            "CREATE SCHEMA IF NOT EXISTS FINAL_PROJECT_MART",
-            "CREATE SCHEMA IF NOT EXISTS FINAL_PROJECT_CURATED",
+            "CREATE SCHEMA IF NOT EXISTS FINAL_PROJECT_MART"
         ],
+    )
+
+    ensure_raw_tables = SQLExecuteQueryOperator(
+        task_id="ensure_raw_tables",
+        conn_id="snowflake_default",
+        split_statements=True,
+        sql="table_creation_commands/create_raw_tables.sql",
+    )
+
+    ensure_static_tables = SQLExecuteQueryOperator(
+        task_id="ensure_static_tables",
+        conn_id="snowflake_default",
+        split_statements=True,
+        sql="table_creation_commands/create_static_tables.sql",
     )
 
     ensure_fact_tables = SQLExecuteQueryOperator(
@@ -89,8 +102,6 @@ def mbta_daily_etl_pipeline():
         sql=[
             "table_creation_commands/create_mart_stop_events.sql",
             "table_creation_commands/create_mart_occupancy_route_hour.sql",
-            "table_creation_commands/create_mart_occupancy_route_day.sql",
-            "table_creation_commands/create_mart_occupancy_overall_day.sql",
             "table_creation_commands/create_mart_alerts_by_day.sql",
             "table_creation_commands/create_mart_alerts_by_day_stops.sql",
         ],
@@ -177,8 +188,9 @@ def mbta_daily_etl_pipeline():
     )
 
     # --- Execution Graph ---
-    # Run DDLs first
-    [ensure_fact_tables, ensure_mart_tables] >> run_spark_static
+    # Run Schemas and DDLs first
+    ensure_schemas >> [ensure_fact_tables, ensure_mart_tables, ensure_static_tables, ensure_raw_tables]
+    [ensure_fact_tables, ensure_mart_tables, ensure_static_tables, ensure_raw_tables] >> run_spark_static
 
     # Once static data is loaded, process real-time feeds
     run_spark_static >> [run_spark_rt_vehicle_positions, run_spark_rt_alerts]
@@ -200,8 +212,7 @@ def mbta_daily_etl_pipeline():
     run_fact_alerts >> run_mart_alerts_by_day_stops
     run_fact_alerts_routes >> run_mart_alerts_by_day_stops
     run_fact_alerts_active_periods >> run_mart_alerts_by_day_stops
-
-    ensure_schemas >> [ensure_fact_tables, ensure_mart_tables]
+    
 
 
 # Instantiate the DAG

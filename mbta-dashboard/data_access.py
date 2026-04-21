@@ -10,7 +10,7 @@ def get_conn():
     with open(st.secrets["SF_PRIVATE_KEY_PATH"], "rb") as key_file:
         private_key = serialization.load_pem_private_key(
             key_file.read(),
-            password=None,
+            password='BooBunny2404!'.encode(),
             backend=default_backend()
         )
 

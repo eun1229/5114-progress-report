@@ -1,12 +1,10 @@
--- Builds occupancy metrics by route-hour, route-day, and overall-day from fact vehicle positions.
-SET target_service_date = TO_DATE('{{ ds }}');
+-- Builds occupancy metrics by route-hour from fact vehicle positions.
+SET target_service_date = TO_DATE('{{ ds }}') - 2;
 
 -- Used Claude Sonnet 4.6 (from the same context as create_mart_occupancy.sql)
 
 -- Idempotency guard
 DELETE FROM FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR  WHERE service_date = $target_service_date;
-DELETE FROM FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY   WHERE service_date = $target_service_date;
-DELETE FROM FINAL_PROJECT_MART.METRIC_OCCUPANCY_OVERALL_DAY WHERE service_date = $target_service_date;
 
 -- Route/hour grain
 INSERT INTO FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR
@@ -15,7 +13,7 @@ WITH bus_snapshots AS (
         f.service_date,
         f.hour,
         f.route_id,
-        r.route_short_name,
+        r.route_short_name              AS route_name,
         f.occupancy_percentage,
         f.occupancy_status
     FROM FINAL_PROJECT_FACT.FACT_VEHICLE_POSITIONS f
@@ -30,7 +28,7 @@ SELECT
     service_date,
     hour,
     route_id,
-    MAX(route_short_name)                                       AS route_short_name,
+    MAX(route_name)                                             AS route_name,
     COUNT(*)                                                    AS snapshot_count,
 
 
@@ -57,53 +55,3 @@ SELECT
 
 FROM bus_snapshots
 GROUP BY service_date, hour, route_id;
-
-
--- Route/day grain — aggregate from the hour grain
-INSERT INTO FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY
-SELECT
-    service_date,
-    route_id,
-    MAX(route_short_name)                                       AS route_short_name,
-    SUM(snapshot_count)                                         AS snapshot_count,
-
-    -- Weighted average across hours (weight by snapshot_count per hour)
-    SUM(avg_occupancy_pct * pct_snapshots_reporting / 100.0 * snapshot_count)
-        / NULLIF(SUM(pct_snapshots_reporting / 100.0 * snapshot_count), 0)
-                                                                AS avg_occupancy_pct,
-    SUM(pct_snapshots_reporting * snapshot_count)
-        / NULLIF(SUM(snapshot_count), 0)                       AS pct_snapshots_reporting,
-    SUM(pct_empty            * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_empty,
-    SUM(pct_many_seats       * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_many_seats,
-    SUM(pct_few_seats        * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_few_seats,
-    SUM(pct_standing_room    * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_standing_room,
-    SUM(pct_crushed_standing * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_crushed_standing,
-    SUM(pct_full             * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_full,
-    SUM(pct_no_data_occupancy * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_no_data_occupancy
-
-FROM FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_HOUR
-WHERE service_date = $target_service_date
-GROUP BY service_date, route_id;
-
-
--- Network wide day grain — aggregate all bus routes
-INSERT INTO FINAL_PROJECT_MART.METRIC_OCCUPANCY_OVERALL_DAY
-SELECT
-    service_date,
-    SUM(snapshot_count)                                         AS snapshot_count,
-    SUM(avg_occupancy_pct * pct_snapshots_reporting / 100.0 * snapshot_count)
-        / NULLIF(SUM(pct_snapshots_reporting / 100.0 * snapshot_count), 0)
-                                                                AS avg_occupancy_pct,
-    SUM(pct_snapshots_reporting * snapshot_count)
-        / NULLIF(SUM(snapshot_count), 0)                       AS pct_snapshots_reporting,
-    SUM(pct_empty            * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_empty,
-    SUM(pct_many_seats       * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_many_seats,
-    SUM(pct_few_seats        * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_few_seats,
-    SUM(pct_standing_room    * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_standing_room,
-    SUM(pct_crushed_standing * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_crushed_standing,
-    SUM(pct_full             * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_full,
-    SUM(pct_no_data_occupancy * snapshot_count) / NULLIF(SUM(snapshot_count), 0) AS pct_no_data_occupancy
-
-FROM FINAL_PROJECT_MART.METRIC_OCCUPANCY_ROUTE_DAY
-WHERE service_date = $target_service_date
-GROUP BY service_date;
