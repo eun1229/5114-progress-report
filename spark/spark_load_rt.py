@@ -298,8 +298,8 @@ def load_data_from_realtime_s3_to_df(spark, feed_type, service_date):
     pb_files_for_date goes down to the feed type being processed.
     example: s3a://5114-transit-project-data/boston/rt/vehicle_positions/
     """
-    # Trip updates are a special case we are working through because snapshots are so large.
-    # Our work in progress code for trip updates is at the end of this file.
+    # Trip updates return the entire network per snapshot
+    # They are processed by the hour, as the data is too large to glob per day
     if feed_type == TRIP_UPDATE:
         return load_trip_updates_data_from_realtime_s3_to_df(
             spark, feed_type, service_date
@@ -369,42 +369,19 @@ def write_raw_df_to_snowflake(df, table_name, service_date, hour=None):
     print(f"Finished writing to {table_name}")
 
 
-if __name__ == "__main__":
-    args = parse_args()
-    spark = create_spark_session()
-    spark.sparkContext.setLogLevel("WARN")
-
-    # configurations to be set by pipeline
-    service_date = (
-        date.fromisoformat(require_service_date(args.service_date)) - timedelta(days=1)
-    ).isoformat()
-    rt_feed_option = args.feed_type
-
-    # load selected rt data for a day into a single df and write to table in RAW schema in Snowflake
-    raw_rt_df = load_data_from_realtime_s3_to_df(spark, rt_feed_option, service_date)
-    if raw_rt_df is not None:  # (feed option trip updates returns None as of now)
-        write_raw_df_to_snowflake(
-            raw_rt_df, f"RAW_{rt_feed_option.upper()}", service_date
-        )
-
-    spark.stop()
-
-
 # --------------------------------------------------------------------------------------------------------------------------
-#   Below is the code for loading trip update data to Snowflake.
-#   This is all a work in progress and is not yet working as we would like! We are working through out of memory errors.
+#   Trip update related
 # --------------------------------------------------------------------------------------------------------------------------
-
 
 def extract_trip_update_cols(df):
-    trip_update_df = (
-        df.select(
+    trip_update_df = (df
+        .select(
             "service_date",
             "hour",
             "ingested_at",
             col("feed.header.timestamp").alias("snapshot_timestamp"),
             col("feed.header.gtfs_realtime_version").alias("gtfs_realtime_version"),
-            explode("feed.entity").alias("entity"),
+            explode("feed.entity").alias("entity")
         )
         .where(col("entity.trip_update").isNotNull())
         .select(
@@ -413,33 +390,32 @@ def extract_trip_update_cols(df):
             col("snapshot_timestamp"),
             col("ingested_at"),
             col("gtfs_realtime_version"),
+
             # Entity level
             col("entity.id").alias("entity_id"),
             col("entity.is_deleted").alias("is_deleted"),
-            # Trip descriptor
+
+            # Trip descriptor (scalars flattened)
             col("entity.trip_update.trip.trip_id").alias("trip_id"),
             col("entity.trip_update.trip.route_id").alias("route_id"),
             col("entity.trip_update.trip.direction_id").alias("direction_id"),
             col("entity.trip_update.trip.start_time").alias("trip_start_time"),
             col("entity.trip_update.trip.start_date").alias("trip_start_date"),
-            col("entity.trip_update.trip.schedule_relationship").alias(
-                "trip_schedule_rel"
-            ),
-            # modified_trip is a nested struct, keep as variant
+            col("entity.trip_update.trip.schedule_relationship").alias("trip_schedule_rel"),
+            # modified_trip is a nested struct — keep as VARIANT
             col("entity.trip_update.trip.modified_trip").alias("modified_trip"),
-            # Vehicle descriptor
+
+            # Vehicle descriptor (scalars flattened)
             col("entity.trip_update.vehicle.id").alias("vehicle_id"),
             col("entity.trip_update.vehicle.label").alias("vehicle_label"),
-            col("entity.trip_update.vehicle.license_plate").alias(
-                "vehicle_license_plate"
-            ),
-            col("entity.trip_update.vehicle.wheelchair_accessible").alias(
-                "wheelchair_accessible"
-            ),
-            # Top level trip_update scalars
+            col("entity.trip_update.vehicle.license_plate").alias("vehicle_license_plate"),
+            col("entity.trip_update.vehicle.wheelchair_accessible").alias("wheelchair_accessible"),
+
+            # Top-level trip_update scalars
             col("entity.trip_update.timestamp").alias("trip_update_timestamp"),
             col("entity.trip_update.delay").alias("delay"),
-            # Keep as variant, flatten in Snowflake
+
+            # Keep as VARIANT — flatten in Snowflake
             col("entity.trip_update.stop_time_update").alias("stop_time_update"),
             col("entity.trip_update.trip_properties").alias("trip_properties"),
         )
@@ -468,51 +444,76 @@ def dedupe_trip_updates(df):
     )
 
 
-def load_trip_updates_data_from_realtime_s3_to_df(spark, feed_type, service_date):
+def load_trip_updates_data_from_realtime_s3_to_df(spark, feed_type, service_date, snapshot_stride=5):
     for hour in range(24):
         pb_files_from_hour = f"{S3_RT_PATH_PREFIX}{feed_type}/dt={service_date}/hour={str(hour).zfill(2)}/*.pb"
-        try:
-            raw_feed_df = (
-                spark.read.format("binaryFile")
-                .load(pb_files_from_hour)
-                .withColumn("service_date", lit(service_date))
-                .withColumn(
-                    "hour",
-                    lit(
-                        regexp_extract(input_file_name(), r"hour=(\d{2})", 1).cast(
-                            "int"
-                        )
-                    ),
-                )
-                .withColumn("ingested_at", lit(current_timestamp()))
-                .select(
+        files_df = (
+            spark.read.format("binaryFile")
+            .load(pb_files_from_hour)
+            .select("path")
+            .orderBy("path")
+        )
+
+        file_paths = [row["path"] for row in files_df.collect()]
+
+        if not file_paths:
+            print(f"No files found for {pb_files_from_hour}")
+            continue
+
+        if snapshot_stride > 1:
+            file_paths = file_paths[::snapshot_stride]
+
+        try:        
+            raw_feed_df = spark.read.format("binaryFile") \
+            .load(file_paths) \
+            .withColumn("service_date", lit(service_date)) \
+            .withColumn("hour", lit(regexp_extract(input_file_name(), r"hour=(\d{2})", 1).cast("int"))) \
+            .withColumn("ingested_at", lit(current_timestamp())) \
+            .select(
                     col("service_date"),
                     col("hour"),
                     col("ingested_at"),
                     from_protobuf(
                         "content",
                         "transit_realtime.FeedMessage",
-                        descFilePath=REALTIME_SPEC_PATH,
-                    ).alias("feed"),
+                        descFilePath=REALTIME_SPEC_PATH
+                    ).alias("feed")
                 )
-            )
             trip_update_df = extract_trip_update_cols(raw_feed_df)
-            trip_update_df = trip_update_df.repartition(
-                200, "trip_id", "trip_start_date"
-            )
+            trip_update_df = trip_update_df.repartition(200, "trip_id", "trip_start_date")
 
             print(f"Handling hour {hour}")
             deduped_trip_update_df = dedupe_trip_updates(trip_update_df)
+            
+            write_raw_df_to_snowflake(deduped_trip_update_df, f"RAW_{rt_feed_option.upper()}", service_date, hour)
 
-            write_raw_df_to_snowflake(
-                deduped_trip_update_df,
-                f"RAW_{feed_type.upper()}",
-                service_date,
-                hour,
-            )
-
+            
         except AnalysisException as e:
             # Directory for hour=02 does not exist on daylight savings
             print(e)
             print(f"Skipping path: {pb_files_from_hour}")
             continue
+
+# --------------------------------------------------------------------------------------------------------------------------
+#   End of trip update related
+# --------------------------------------------------------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    args = parse_args()
+    spark = create_spark_session()
+    spark.sparkContext.setLogLevel("WARN")
+
+    # configurations to be set by pipeline
+    service_date = (
+        date.fromisoformat(require_service_date(args.service_date)) - timedelta(days=1)
+    ).isoformat()
+    rt_feed_option = args.feed_type
+
+    # load selected rt data for a day into a single df and write to table in RAW schema in Snowflake
+    raw_rt_df = load_data_from_realtime_s3_to_df(spark, rt_feed_option, service_date)
+    if raw_rt_df is not None:  # (feed option trip updates returns None as of now)
+        write_raw_df_to_snowflake(
+            raw_rt_df, f"RAW_{rt_feed_option.upper()}", service_date
+        )
+
+    spark.stop()

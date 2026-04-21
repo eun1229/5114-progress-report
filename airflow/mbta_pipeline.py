@@ -92,6 +92,7 @@ def mbta_daily_etl_pipeline():
             "table_creation_commands/create_fact_alerts.sql",
             "table_creation_commands/create_fact_alerts_routes.sql",
             "table_creation_commands/create_fact_alerts_active_periods.sql",
+            "table_creation_commands/create_fact_trip_updates.sql",
         ],
     )
 
@@ -104,6 +105,7 @@ def mbta_daily_etl_pipeline():
             "table_creation_commands/create_mart_occupancy_route_hour.sql",
             "table_creation_commands/create_mart_alerts_by_day.sql",
             "table_creation_commands/create_mart_alerts_by_day_stops.sql",
+            "table_creation_commands/create_mart_service_delivered.sql",
         ],
     )
 
@@ -126,6 +128,13 @@ def mbta_daily_etl_pipeline():
         task_id="run_spark_rt_alerts",
         bash_command=bash_with_env(
             f"spark-submit --packages {SPARK_PACKAGES} {spark_dir}/spark_load_rt.py --date {{{{ ds }}}} --feed-type alerts"
+        ),
+    )
+
+    run_spark_rt_trip_updates = BashOperator(
+        task_id="run_spark_rt_trip_updates",
+        bash_command=bash_with_env(
+            f"spark-submit --packages {SPARK_PACKAGES} {spark_dir}/spark_load_rt.py --date {{{{ ds }}}} --feed-type trip_updates"
         ),
     )
 
@@ -158,6 +167,13 @@ def mbta_daily_etl_pipeline():
         sql="raw_to_fact_commands/alerts_active_periods_fact.sql",
     )
 
+    run_fact_trip_updates = SQLExecuteQueryOperator(
+        task_id="run_fact_trip_updates",
+        conn_id="snowflake_default",
+        split_statements=True,
+        sql="raw_to_fact_commands/trip_updates_fact.sql",
+    )
+
     # 4. Snowflake Mart Tasks
     run_mart_occupancy = SQLExecuteQueryOperator(
         task_id="run_mart_occupancy",
@@ -187,13 +203,20 @@ def mbta_daily_etl_pipeline():
         sql="mart_commands/mart_alerts_by_day_stops.sql",
     )
 
+    run_mart_service_delivered = SQLExecuteQueryOperator(
+        task_id="run_mart_service_delivered",
+        conn_id="snowflake_default",
+        split_statements=True,
+        sql="mart_commands/mart_service_delivered.sql",
+    )
+
     # --- Execution Graph ---
     # Run Schemas and DDLs first
     ensure_schemas >> [ensure_fact_tables, ensure_mart_tables, ensure_static_tables, ensure_raw_tables]
     [ensure_fact_tables, ensure_mart_tables, ensure_static_tables, ensure_raw_tables] >> run_spark_static
 
     # Once static data is loaded, process real-time feeds
-    run_spark_static >> [run_spark_rt_vehicle_positions, run_spark_rt_alerts]
+    run_spark_static >> [run_spark_rt_vehicle_positions, run_spark_rt_alerts, run_fact_trip_updates]
 
     # Load facts after their respective RAW tables are populated
     run_spark_rt_vehicle_positions >> run_fact_vehicle_positions
@@ -202,6 +225,7 @@ def mbta_daily_etl_pipeline():
         run_fact_alerts_routes,
         run_fact_alerts_active_periods,
     ]
+    run_spark_rt_trip_updates >> run_fact_trip_updates
 
     # Build Marts from facts
     run_fact_vehicle_positions >> [run_mart_occupancy, run_mart_stop_events]
@@ -212,6 +236,8 @@ def mbta_daily_etl_pipeline():
     run_fact_alerts >> run_mart_alerts_by_day_stops
     run_fact_alerts_routes >> run_mart_alerts_by_day_stops
     run_fact_alerts_active_periods >> run_mart_alerts_by_day_stops
+
+    run_fact_trip_updates >> run_mart_service_delivered
     
 
 
