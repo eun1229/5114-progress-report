@@ -35,7 +35,7 @@ st.markdown("""
 
 # ── Header ───────────────────────────────────────────────────
 st.title("MBTA Bus Performance Dashboard")
-st.caption(f"Historical metrics are available for up to 2 days from the present. Live data collected every 60 seconds via MBTA GTFS-RT API · Refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S ET')}")
+#st.caption(f"Historical metrics are available for up to 2 days from the present. Live data collected every 60 seconds via MBTA GTFS-RT API · Refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S ET')}")
 
 # ── Sidebar filters ──────────────────────────────────────────
 st.sidebar.header("Filters")
@@ -70,8 +70,7 @@ if not selected_routes:
 route_filter = "', '".join(selected_routes)
 
 # ── Tabs ─────────────────────────────────────────────────────
-tab0, tab2, tab5, tab6, tab7, tab8 = st.tabs([
-    "Live tab",
+tab2, tab5, tab6, tab7, tab8 = st.tabs([
     "Occupancy %",
     "Alerts by route",
     "Alerts by stop",
@@ -80,8 +79,8 @@ tab0, tab2, tab5, tab6, tab7, tab8 = st.tabs([
 ])
 
 # ── Tab 0: Live tab ──────────────────────────────────────────
-with tab0:
-    render_live_tab()
+# with tab0:
+#     render_live_tab()
 
 # # ── Tab 1: System overview ───────────────────────────────────
 # with tab1:
