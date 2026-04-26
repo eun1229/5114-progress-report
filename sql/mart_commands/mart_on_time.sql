@@ -4,11 +4,11 @@ SET target_service_date = TO_DATE('{{ ds }}') - 2;
 -- Used Claude Sonnet 4.6 for the QUALIFY and DATEDIFF statements and for aid with join logic.
 
 -- Idempotency guard
-DELETE FROM FINAL_PROJECT_MART.METRIC_STOP_EVENTS
+DELETE FROM FINAL_PROJECT_MART.METRIC_ON_TIME
 WHERE trip_start_date = $target_service_date;
 
 
-INSERT INTO FINAL_PROJECT_MART.METRIC_STOP_EVENTS (
+INSERT INTO FINAL_PROJECT_MART.METRIC_ON_TIME (
     service_date,
     trip_start_date,
     hour,

@@ -101,7 +101,7 @@ def mbta_daily_etl_pipeline():
         conn_id="snowflake_default",
         split_statements=True,
         sql=[
-            "table_creation_commands/create_mart_stop_events.sql",
+            "table_creation_commands/create_mart_on_time.sql",
             "table_creation_commands/create_mart_occupancy_route_hour.sql",
             "table_creation_commands/create_mart_alerts_by_day.sql",
             "table_creation_commands/create_mart_alerts_by_day_stops.sql",
@@ -182,11 +182,11 @@ def mbta_daily_etl_pipeline():
         sql="mart_commands/mart_occupancy.sql",
     )
 
-    run_mart_stop_events = SQLExecuteQueryOperator(
-        task_id="run_mart_stop_events",
+    run_mart_on_time = SQLExecuteQueryOperator(
+        task_id="run_mart_on_time",
         conn_id="snowflake_default",
         split_statements=True,
-        sql="mart_commands/mart_stop_events.sql",
+        sql="mart_commands/mart_on_time.sql",
     )
 
     run_mart_alerts_by_day = SQLExecuteQueryOperator(
@@ -226,7 +226,7 @@ def mbta_daily_etl_pipeline():
     ] >> run_spark_static
 
     # Once static data is loaded, process real-time feeds
-    run_spark_static >> [run_spark_rt_vehicle_positions, run_spark_rt_alerts, run_fact_trip_updates]
+    run_spark_static >> [run_spark_rt_vehicle_positions, run_spark_rt_alerts, run_spark_rt_trip_updates]
 
     # Load facts after their respective RAW tables are populated
     run_spark_rt_vehicle_positions >> run_fact_vehicle_positions
@@ -238,7 +238,7 @@ def mbta_daily_etl_pipeline():
     run_spark_rt_trip_updates >> run_fact_trip_updates
 
     # Build Marts from facts
-    run_fact_vehicle_positions >> [run_mart_occupancy, run_mart_stop_events]
+    run_fact_vehicle_positions >> [run_mart_occupancy, run_mart_on_time]
     run_fact_alerts >> run_mart_alerts_by_day
     run_fact_alerts_routes >> run_mart_alerts_by_day
     run_fact_alerts_active_periods >> run_mart_alerts_by_day

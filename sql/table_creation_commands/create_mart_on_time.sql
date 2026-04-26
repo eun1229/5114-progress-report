@@ -5,7 +5,7 @@
 --   STATIC.DIM_TRIPS             (needed for direction_id)
 --   STATIC.DIM_ROUTES            (needed for route_type and route name)
 
-CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.METRIC_STOP_EVENTS (
+CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.METRIC_ON_TIME (
     service_date                DATE          NOT NULL,
     trip_start_date             DATE,
     hour                        INTEGER,
@@ -48,6 +48,6 @@ CREATE TABLE IF NOT EXISTS FINAL_PROJECT_MART.METRIC_STOP_EVENTS (
     -- Static version linkage
     static_version_date         DATE          NOT NULL,
 
-    CONSTRAINT pk_stop_events PRIMARY KEY (service_date, trip_id, stop_sequence)
+    CONSTRAINT pk_on_time PRIMARY KEY (service_date, trip_id, stop_sequence)
 )
 CLUSTER BY (service_date, route_name); -- aligns with columns for visualization
