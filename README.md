@@ -1,6 +1,7 @@
 # 5114-progress-report
 
-**acquisition folder** contains code for AWS Lambda that collects real time updates and static schedule updates. Triggered using Eventbridge rules.
+**acquisition folder** 
+- contains code for AWS Lambda that collects real time updates and static schedule updates. Triggered using Eventbridge rules.
 
 
 **spark folder** 
