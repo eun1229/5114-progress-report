@@ -19,7 +19,7 @@
 - contains code for the Streamlit dashboard for visualizing the metrics
   
 **mbta-live-dashboard folder**
-- contains code for the live system view of Boston buses (HTML/js)
+- contains code for the live system view of Boston buses (HTML/JS)
 
 ## Runtime versions
 
