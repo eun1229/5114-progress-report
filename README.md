@@ -1,4 +1,4 @@
-# 5114-progress-report
+# 5114 Final Project
 
 **acquisition folder** 
 - contains code for AWS Lambda that collects real time updates and static schedule updates. Triggered using Eventbridge rules.
